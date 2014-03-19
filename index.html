@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+	<title>School funding shortfall by district</title>	
+
+	<script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+	
+	<script src="http://d3js.org/topojson.v1.min.js"></script>
+	
+	<link href='https://api.tiles.mapbox.com/mapbox.js/v1.6.2/mapbox.css' rel='stylesheet' />
+	
+	<script src="leaflet-0.7.2/leaflet.js" type="text/javascript"></script>
+	
+	<script src='https://api.tiles.mapbox.com/mapbox.js/v1.6.2/mapbox.js'></script>
+	
+
+</head>
+<body>
+<style type="text/css">
+html,
+body,
+#map {
+    position: relative;
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+.info {
+	padding: 6px 8px;
+	font: 14px/16px Arial, Helvetica, sans-serif;
+	background: white;
+	background: rgba(255,255,255,0.8);
+	box-shadow: 0 0 15px rgba(0,0,0,0.2);
+	border-radius: 5px;
+}
+.info h4 {
+	margin: 0 0 5px;
+	color: #777;
+}
+
+.legend {
+	text-align: left;
+	line-height: 18px;
+	color: #555;
+}
+.legend i {
+	min-width: 20px;
+	max-width: 20%;
+	height: 18px;
+	float: left;
+	margin-right: 8px;
+	opacity: 0.7;
+}
+
+</style>
+
+<div id="map"></div>
+
+<script type="text/javascript" src="school_underfunding.js"></script>
+
+<script type="text/javascript">
+
+var formatter = d3.format("$,.0f");
+
+var northEast = L.latLng(44.878, -78.231),
+    southWest = L.latLng(30.78, -106.122),
+    bounds = L.latLngBounds(southWest, northEast);
+
+var map = L.map('map', {scrollWheelZoom: false, attribution: ''}).setView([38.494, -90.722], 9).setMaxBounds(bounds);
+
+// var tiles = L.mapbox.tileLayer('stlpr.hi06d4b5')
+//    .addTo(map);
+    
+var info = L.control();
+
+info.onAdd = function (map) {
+	this._div = L.DomUtil.create('div', 'info');
+	this.update();
+	return this._div;
+};
+
+
+
+info.update = function (props) {
+	this._div.innerHTML = '<h4>School funding shortfall</h4>' +  (props ?
+		'<b>' + props.district + '</b><br />' + (props.shortfall_per_student ? 'This district had a funding shortfall of ' + formatter(props.shortfall) + ' in FY2014. That works out to ' + formatter(props.shortfall_per_student) + ' per student.' : '' )
+		: 'Hover over a school district');
+};
+
+info.addTo(map);
+    
+function getColor(d) {
+	return d > 900  ? '#b30000' :
+	       d > 800  ? '#e34a33' :
+	       d > 700  ? '#fc8d59' :
+	       d > 600  ? '#fdcc8a' :
+	       d > 0   ? '#fef0d9' :
+	                 '#000000';
+}
+    
+		function style(feature) {
+			return {
+				weight: 1,
+				opacity: .6,
+				color: '#eee',
+				fillOpacity: 0.6,
+				fillColor: getColor(feature.properties.shortfall_per_student)
+				};
+		}
+		
+		function highlightFeature(e) {
+			var layer = e.target;
+
+			layer.setStyle({
+				weight: 5,
+				color: '#666',
+				dashArray: '',
+				fillOpacity: 0.7
+			});
+
+			if (!L.Browser.ie && !L.Browser.opera) {
+				layer.bringToFront();
+			}
+
+			info.update(layer.feature.properties);
+		}
+
+		var geojson;
+
+		function resetHighlight(e) {
+			geojson.resetStyle(e.target);
+			info.update();
+		}
+
+		function zoomToFeature(e) {
+			map.fitBounds(e.target.getBounds());
+		}
+
+		function onEachFeature(feature, layer) {
+			layer.on({
+				mouseover: highlightFeature,
+				mouseout: resetHighlight,
+				click: highlightFeature
+			});
+		}		
+
+var geojson;
+
+geojson = L.geoJson(distdata, {
+	style: style,
+	onEachFeature: onEachFeature
+}).addTo(map);
+
+var legend = L.control({position: 'bottomright'});
+
+map.attributionControl.addAttribution('Data: Missouri Budget Project');
+
+legend.onAdd = function (map) {
+
+	var div = L.DomUtil.create('div', 'info legend'),
+		grades = [0, 600, 700, 800, 900],
+		labels = [],
+		from, to;
+
+	for (var i = 0; i < grades.length; i++) {
+		from = grades[i];
+		to = grades[i + 1];
+		labels.push(
+			'<i style="background:' + getColor(grades[i] + 1) + '"></i> ' +
+			((from == 0) ? formatter(to) + ' or less' : formatter(from + 1) + (to ? '&ndash;' + formatter(to) : '+')));
+	}
+
+	div.innerHTML = labels.join('<br>');
+	return div;
+};
+
+legend.addTo(map);
+
+</script>
+</body>
+</html>
