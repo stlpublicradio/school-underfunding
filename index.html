@@ -73,8 +73,8 @@ var northEast = L.latLng(44.878, -78.231),
 
 var map = L.map('map', {scrollWheelZoom: false, attribution: ''}).setView([38.494, -90.722], 9).setMaxBounds(bounds);
 
-// var tiles = L.mapbox.tileLayer('stlpr.hi06d4b5')
-//    .addTo(map);
+var tiles = L.mapbox.tileLayer('stlpr.hi06d4b5')
+    .addTo(map);
     
 var info = L.control();
 
